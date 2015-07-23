@@ -2,11 +2,11 @@
 #
 # This is scheduled in CRON.  It will run every 5 minutes
 # and check for inactivity.  It compares the RX and TX packets
-# from 5 minutes ago to detect if they significantly increased.
+# from 30 minutes ago to detect if they significantly increased.
 # If they haven't, it will suspend the machine.
 #
 #       crontab -l
-#       */5 * * * * /home/media/sleep.sh
+#       */30 * * * * /home/media/sleep.sh
 
 DIR=/root/idle
 log=$DIR/log
@@ -14,14 +14,16 @@ log=$DIR/log
 LIMIT_RX=4000
 LIMIT_TX=4000
 
+IFACE="eth0"
+
 if [ ! -d $log ]; then
 	mkdir -p $DIR
 	chmod 700 $DIR
 fi
 
 # Extract the RX/TX
-rx=`/sbin/ifconfig eth0 | grep -m 1 RX | cut -d: -f2 | sed 's/ //g' | sed 's/errors//g'`
-tx=`/sbin/ifconfig eth0 | grep -m 1 TX | cut -d: -f2 | sed 's/ //g' | sed 's/errors//g'`
+rx=`/sbin/ifconfig $IFACE | grep -m 1 RX | cut -d: -f2 | sed 's/ //g' | sed 's/errors//g'`
+tx=`/sbin/ifconfig $IFACE | grep -m 1 TX | cut -d: -f2 | sed 's/ //g' | sed 's/errors//g'`
 
 #Write Date to log
 date >> $log
@@ -58,14 +60,9 @@ if [ -f /root/idle/rx ] || [ -f /root/idle/tx ]; then
                 rm /root/idle/tx
 
                 if [ $(ps auxwww|grep sshd:|wc -l) -gt 1 ]; then
-                        if [ ! -n "$1" ]; then
-                                echo "Suspend to Ram ... - force because ssh connection is established" >> $log
-                                echo " " >> $log
-                        else
-                                echo "Suspend to Ram ... - skipping because ssh connection is established" >> $log
-                                echo " " >> $log
-                                exit 0
-                        fi
+                        echo "Suspend to Ram ... - skipping because ssh connection is established" >> $log
+                        echo " " >> $log
+                        exit 0
                 fi
 
                 for disk in {a..z}
